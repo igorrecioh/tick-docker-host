@@ -1,0 +1,54 @@
+version: '3.7'
+services:
+  influxdb:
+    image: influxdb:1.8.4
+    hostname: monitoring_influxdb
+    container_name: monitoring_influxdb
+    ports: 
+        - 8086:8086
+    networks:
+        - monitoring_network
+  chronograf:
+    image: chronograf:latest
+    hostname: monitoring_chronograf
+    container_name: monitoring_chronograf
+    ports: 
+        - "8888:8888"
+    networks:
+        - monitoring_network
+  telegraf:
+    image: telegraf:latest
+    hostname: monitoring_telegraf
+    container_name: monitoring_telegraf
+    environment:
+        - HOST_PROC=/host/proc
+        - HOST_SYS=/host/sys
+        - HOST_ETC=/host/etc
+        - HOST_CGROUP=/host/cgroup
+        - TZ=Europe/Madrid
+    volumes:
+        - ./confs/telegraf/telegraf.conf:/etc/telegraf/telegraf.conf:ro
+        - ./confs/telegraf/telegraf.d:/etc/telegraf/telegraf.d:ro
+        - /var/run/docker.sock:/var/run/docker.sock:ro
+        - /proc:/host/proc:ro
+        - /cgroup/:/host/cgroup:ro
+        - /sys:/rootfs/sys:ro
+        - /etc:/rootfs/etc
+    networks:
+        - monitoring_network
+  kapacitor:
+    image: kapacitor:latest
+    hostname: monitoring_kapacitor
+    container_name: monitoring_kapacitor
+    environment:
+        - KAPACITOR_INFLUXDB_0_URLS_0=http://monitoring_influxdb:8086
+    ports:
+        - 9092:9092
+    networks:
+        - monitoring_network
+
+volumes:
+    telegraf-data:
+
+networks:
+    monitoring_network:
